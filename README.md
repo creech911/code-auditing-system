@@ -1,1 +1,1 @@
-# code-auditing-system
+This Node.js server acts as a robust backend solution designed to enhance digital services by not only serving the frontend but also proficiently handling file uploads. Its capabilities extend to secure storing of contract files and audit reports through seamless integration with the InterPlanetary File System (IPFS), ensuring advanced data integrity and accessibility. This solution caters to organizations seeking to bolster their backend support with efficient data handling and storage, promoting a secure and scalable digital environment.
