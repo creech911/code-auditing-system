@@ -2,17 +2,18 @@ require('dotenv').config();
 
 const express = require('express');
 const fileUpload = require('express-fileupload');
-const fs = require('fs');
 const IPFS = require('ipfs-http-client');
 const path = require('path');
 
 const app = express();
 const port = process.env.PORT || 3000;
-const ipfs = new IPFS({
+
+const ipfsClientOptions = {
   host: process.env.IPFS_HOST,
   port: process.env.IPFS_PORT,
   protocol: process.env.IPFS_PROTOCOL,
-});
+};
+const ipfs = new IPFS(ipfsClientOptions);
 
 app.use(express.static('public'));
 app.use(fileUpload());
@@ -26,16 +27,15 @@ app.post('/upload', async (req, res) => {
     return res.status(400).send('No files were uploaded.');
   }
 
-  let uploadedFile = req.files.file;
+  const { file: uploadedFile } = req.files;
 
-  const fileContent = Buffer.from(uploadedFile.data);
   try {
-    const fileAdded = await ipfs.add(fileContent);
-    const ipfsHash = fileAdded.path;
+    const fileAdded = await ipfs.add(uploadedFile.data);
+    const { path: ipfsHash } = fileAdded;
 
     res.send({ 
       message: 'File uploaded successfully',
-      ipfsHash: ipfsHash
+      ipfsHash,
     });
   } catch (error) {
     res.status(500).send(error.message);
