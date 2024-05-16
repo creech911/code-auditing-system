@@ -5,55 +5,55 @@ interface IERC20 {
 }
 
 contract CodeAudit {
-    address public owner;
+    address public contractOwner;
     IERC20 public paymentToken;
 
-    struct SmartContract {
+    struct AuditContract {
         address developer;
-        string cid;
-        bool audited;
-        string auditReportCID;
+        string creationId; // Previously 'cid', now more descriptive
+        bool isAudited;
+        string auditReportId; // Changed from auditReportCID for consistency
     }
 
-    mapping(uint256 => SmartContract) public smartContracts;
-    uint256 public smartContractCount;
+    mapping(uint256 => AuditContract) public auditContracts;
+    uint256 public auditContractCount;
 
-    constructor(address _paymentTokenAddress) {
-        owner = msg.sender;
-        paymentToken = IERC20(_paymentTokenAddress);
+    constructor(address paymentTokenAddress) {
+        contractOwner = msg.sender;
+        paymentToken = IERC20(paymentTokenAddress);
     }
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner can call this.");
+    modifier onlyContractOwner() { // More descriptive name for the modifier
+        require(msg.sender == contractOwner, "Only contract owner can call this.");
         _;
     }
 
-    event ContractSubmitted(uint256 id, address developer, string cid);
-    event AuditReportPublished(uint256 id, string auditReportCID);
-    event AuditorCompensated(address auditor, uint256 amount);
+    event ContractSubmitted(uint256 id, address developer, string creationId);
+    event AuditReportPublished(uint256 id, string auditReportId);
+    event AuditorRewarded(address auditor, uint256 amount);
 
-    function submitContract(string memory _cid) public {
-        uint256 newContractId = smartContractCount++;
-        SmartContract storage newContract = smartContracts[newContractId];
+    function submitAuditContract(string memory creationId) public { // More descriptive function name
+        uint256 newContractId = auditContractCount++;
+        AuditContract storage newContract = auditContracts[newContractId];
         newContract.developer = msg.sender;
-        newContract.cid = _cid;
-        newContract.audited = false;
+        newContract.creationId = creationId;
+        newContract.isAudited = false;
 
-        emit ContractSubmitted(newContractId, msg.sender, _cid);
+        emit ContractSubmitted(newContractId, msg.sender, creationId);
     }
 
-    function postAuditResult(uint256 _id, string memory _auditReportCID) public {
-        SmartContract storage sContract = smartContracts[_id];
-        require(!sContract.audited, "Already audited");
-        sContract.auditReportCID = _auditReportCID;
-        sContract.audited = true;
+    function publishAuditResult(uint256 contractId, string memory auditReportId) public { // More descriptive name
+        AuditContract storage targetContract = auditContracts[contractId];
+        require(!targetContract.isAudited, "Contract already audited");
+        targetContract.auditReportId = auditReportId;
+        targetContract.isAudited = true;
 
-        emit AuditReportPublished(_id, _auditReportCID);
+        emit AuditReportPublished(contractId, auditReportId);
     }
 
-    function compensateAuditor(address _auditor, uint256 _amount) public onlyOwner {
-        require(paymentToken.transfer(_auditor, _amount), "Payment failed");
+    function rewardAuditor(address auditor, uint256 amount) public onlyContractOwner { // Changed for clarity
+        require(paymentToken.transfer(auditor, amount), "Payment transfer failed");
 
-        emit AuditorCompensated(_auditor, _amount);
+        emit AuditorRewarded(auditor, amount);
     }
 }
