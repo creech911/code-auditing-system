@@ -1,82 +1,82 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 
 const AuditDashboard: React.FC = () => {
-  const [contracts, setContracts] = useState<File[]>([]);
-  const [auditStatus, setAuditStatus] = useState<{ [key: string]: string }>({});
-  const [selectedContract, setSelectedContract] = useState<File | null>(null);
-  const [auditReport, setAuditReport] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
+  const [smartContracts, setSmartContracts] = useState<File[]>([]);
+  const [contractAuditStatus, setContractAuditStatus] = useState<{ [key: string]: string }>({});
+  const [selectedSmartContract, setSelectedSmartContract] = useState<File | null>(null);
+  const [auditReportContent, setAuditReportContent] = useState<string>('');
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSmartContractSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const filesArray = Array.from(event.target.files);
-      setContracts(filesArray);
+      setSmartContracts(filesArray);
     }
   };
 
-  const submitContractForAudit = async () => {
-    if (!selectedContract) return;
-    setLoading(true);
+  const submitSmartContractForAudit = async () => {
+    if (!selectedSmartContract) return;
+    setIsSubmitting(true);
     const formData = new FormData();
-    formData.append('contract', selectedContract);
+    formData.append('contract', selectedSmartContract);
 
     try {
-      const response = await axios.post(`${process.env.REACT_APP_API_URL}/submit-audit`, formData, {
+      await axios.post(`${process.env.REACT_APP_API_URL}/submit-audit`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-      setAuditStatus((prev) => ({ ...prev, [selectedContract.name]: 'Pending' }));
+      setContractAuditStatus((prevStatus) => ({ ...prevStatus, [selectedSmartContract.name]: 'Pending' }));
       alert('Contract submitted successfully!');
     } catch (error) {
       console.error('Error submitting contract for audit:', error);
       alert('Failed to submit contract.');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const fetchAuditReport = async (contractName: string) => {
-    setLoading(true);
+  const requestAuditReport = async (contractName: string) => {
+    setIsSubmitting(true);
     try {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/audit-report/${contractName}`);
-      setAuditReport(response.data);
+      setAuditReportContent(response.data);
     } catch (error) {
       console.error('Error fetching audit report:', error);
-      setAuditReport('Failed to fetch report.');
+      setAuditReportContent('Failed to fetch report.');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const renderContractsList = () => (
+  const displayContractsList = () => (
     <ul>
-      {contracts.map((contract, index) => (
+      {smartContracts.map((contract, index) => (
         <li key={index}>
-          {contract.name} - Status: {auditStatus[contract.name] || 'Not Submitted'}
-          <button onClick={() => setSelectedContract(contract)}>Select</button>
+          {contract.name} - Status: {contractAuditStatus[contract.name] || 'Not Submitted'}
+          <button onClick={() => setSelectedSmartContract(contract)}>Select</button>
         </li>
       ))}
     </ul>
   );
 
-  const renderAuditReportSection = () => (
+  const displayAuditReportSection = () => (
     <div>
       <h2>Audit Report</h2>
-      <p>{auditReport || 'Select a contract to view its audit report.'}</p>
+      <p>{auditReportContent || 'Select a contract to view its audit report.'}</p>
     </div>
   );
 
   return (
     <div>
       <h1>Smart Contract Audit Dashboard</h1>
-      <input type="file" multiple onChange={handleFileSelect} />
-      <button disabled={!selectedContract || loading} onClick={submitContractForAudit}>
+      <input type="file" multiple onChange={handleSmartContractSelection} />
+      <button disabled={!selectedSmartContract || isSubmitting} onClick={submitSmartContractForAudit}>
         Submit Selected Contract for Audit
       </button>
-      {renderContractsList()}
-      {renderAuditReportSection()}
+      {displayContractsList()}
+      {displayAuditReportSection()}
     </div>
   );
 };
