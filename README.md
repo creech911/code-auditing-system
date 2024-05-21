@@ -49,11 +49,6 @@ This Node.js server provides a robust backend solution designed to enhance digit
 - The server handles file uploads via specified endpoints.
 - Uploaded files are securely stored using IPFS, ensuring data integrity and accessibility.
 
-## IPFS Integration
-
-- The system integrates with IPFS for secure and decentralized storage.
-- Files are uploaded to IPFS, providing a robust solution for contract files and audit reports.
-
 ## Contributing
 
 We welcome contributions to enhance the system. Please follow these steps to contribute:
