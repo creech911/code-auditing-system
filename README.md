@@ -24,7 +24,7 @@ This Node.js server provides a robust backend solution designed to enhance digit
 1. Clone the repository:
 
    ```sh
-   git clone https://github.com/your-username/code-auditing-system.git
+   git clone https://github.com/creech911/code-auditing-system.git
    cd code-auditing-system
    ```
 
