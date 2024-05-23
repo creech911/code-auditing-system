@@ -7,11 +7,13 @@ const AuditDashboard: React.FC = () => {
   const [selectedSmartContract, setSelectedSmartContract] = useState<File | null>(null);
   const [auditReportContent, setAuditReportContent] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [error, setError] = useState<string>('');
 
   const handleSmartContractSelection = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
       const filesArray = Array.from(event.target.files);
       setSmartContracts(filesArray);
+      setError(''); // Reset errors on new selection
     }
   };
 
@@ -30,8 +32,13 @@ const AuditDashboard: React.FC = () => {
       setContractAuditStatus((prevStatus) => ({ ...prevStatus, [selectedSmartContract.name]: 'Pending' }));
       alert('Contract submitted successfully!');
     } catch (error) {
-      console.error('Error submitting contract for audit:', error);
-      alert('Failed to submit contract.');
+      if (axios.isAxiosError(error)) {
+        console.error('Axios error submitting contract for audit:', error.message);
+        setError(`Failed to submit contract: ${error.response?.data || error.message}`);
+      } else {
+        console.error('Unexpected error submitting contract for audit:', error);
+        setError('Unexpected error during submission. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -39,12 +46,18 @@ const AuditDashboard: React.FC = () => {
 
   const requestAuditReport = async (contractName: string) => {
     setIsSubmitting(true);
+    setError(''); // Reset previous errors
     try {
       const response = await axios.get(`${process.env.REACT_APP_API_URL}/audit-report/${contractName}`);
       setAuditReportContent(response.data);
     } catch (error) {
-      console.error('Error fetching audit report:', error);
-      setAuditReportContent('Failed to fetch report.');
+      if (axios.isAxiosError(error)) {
+        console.error('Axios error fetching audit report:', error.message);
+        setError(`Failed to fetch report: ${error.response?.data || error.message}`);
+      } else {
+        console.error('Unexpected error fetching audit report:', error);
+        setError('Unexpected error fetching report. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -61,6 +74,10 @@ const AuditDashboard: React.FC = () => {
     </ul>
   );
 
+  const displayError = () => (
+    error && <div style={{ color: 'red', marginTop: '10px' }}>{error}</div>
+  );
+
   const displayAuditReportSection = () => (
     <div>
       <h2>Audit Report</h2>
@@ -75,6 +92,7 @@ const AuditDashboard: React.FC = () => {
       <button disabled={!selectedSmartContract || isSubmitting} onClick={submitSmartContractForAudit}>
         Submit Selected Contract for Audit
       </button>
+      {displayError()}
       {displayContractsList()}
       {displayAuditReportSection()}
     </div>
