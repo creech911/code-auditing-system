@@ -7,86 +7,86 @@ interface Audit {
 }
 
 const useAuditContract = () => {
-  const [provider, setProvider] = useState<ethers.providers.Web3Provider | null>(null);
-  const [contract, setContract] = useState<ethers.Contract | null>(null);
-  const [audits, setAudits] = useState<Audit[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [web3Provider, setWebInternetProvider] = useState<ethers.providers.Web3Provider | null>(null);
+  const [auditContract, setAuditContract] = useState<ethers.Contract | null>(null);
+  const [auditRecords, setAuditRecords] = useState<Audit[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const throwError = (message: string, consoleMsg: string) => {
+  const logError = (message: string, consoleMsg: string) => {
     console.error(consoleMsg);
     setError(message);
   };
 
-  const connectWallet = useCallback(async () => {
+  const initializeWalletConnection = useCallback(async () => {
     if (!window.ethereum) {
-      return throwError("Ethereum object doesn't exist in the window context.", "Ethereum object doesn't exist!");
+      return logError("Ethereum object doesn't exist in the window context.", "Ethereum object doesn't exist!");
     }
 
     try {
       await window.ethereum.request({ method: 'eth_requestAccounts' });
-      const provider = new ethers.providers.Web3Provider(window.ethereum);
-      setProvider(provider);
-      const signer = provider.getSigner();
+      const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+      setWeb3Provider(web3Provider);
+      const signer = web3Provider.getSigner();
       
       const contractAddress = process.env.REACT_APP_CONTRACT_ADDRESS;
       
       if (!contractAddress) {
-        return throwError('Contract address is not provided in environment variables.', 'Contract address is missing.');
+        return logError('Contract address is not provided in environment variables.', 'Contract address is missing.');
       }
 
-      const contract = new ethers.Contract(contractAddress, AuditContractABI, signer);
-      setContract(contract);
+      const auditContract = new ethers.Contract(contractAddress, AuditContractABI, signer);
+      setAuditContract(auditContract);
     } catch (error) {
-      throwError('Failed to connect wallet. Please try again.', 'Failed to connect wallet: ' + error);
+      logError('Failed to connect wallet. Please try again.', 'Failed to connect wallet: ' + error);
     }
   }, []);
 
   useEffect(() => {
-    connectWallet();
-  }, [connectWallet]);
+    initializeWalletConnection();
+  }, [initializeWalletConnection]);
 
-  const handleContractInteraction = async (action: Function, errorMessage: string) => {
-    if (!contract) {
-      return setError('Contract not initialized');
+  const performContractInteraction = async (action: Function, errorMessage: string) => {
+    if (!auditContract) {
+      return setError('Audit contract not initialized');
     }
-    setLoading(true);
+    setIsLoading(true);
     try {
       await action();
     } catch (error) {
-      throwError(errorMessage, error.message);
+      logError(errorMessage, error.message);
     }
-    setLoading(false);
+    setIsLoading(false);
   };
 
-  const submitAudit = useCallback(async (auditData: any) => {
-    handleContractInteraction(async () => {
-      const transaction = await contract.submitAudit(auditData);
+  const submitAuditRecord = useCallback(async (auditData: any) => {
+    performContractInteraction(async () => {
+      const transaction = await auditContract.submitAudit(auditData);
       await transaction.wait();
-    }, 'Error submitting audit. Please try again.');
-  }, [contract]);
+    }, 'Error submitting audit record. Please try again.');
+  }, [auditContract]);
 
-  const fetchAuditStatus = useCallback(async (auditId: string) => {
-    handleContractInteraction(async () => {
-      const status = await contract.auditStatus(auditId);
+  const retrieveAuditStatus = useCallback(async (auditId: string) => {
+    performContractInteraction(async () => {
+      const status = await auditContract.auditStatus(auditId);
       console.log(`Status of audit ${auditId}:`, status);
-    }, 'Error fetching audit status. Please try again.');
-  }, [contract]);
+    }, 'Error retrieving audit status. Please try again.');
+  }, [auditContract]);
 
-  const fetchCompletedAudits = useCallback(async () => {
-    handleContractInteraction(async () => {
-      const completedAudits = await contract.getCompletedAudits();
-      setAudits(completedAudits.map((audit: any) => ({
+  const retrieveCompletedAudits = useCallback(async () => {
+    performContractInteraction(async () => {
+      const completedAudits = await auditContract.getCompletedAudits();
+      setAuditRecords(completedAudits.map((audit: any) => ({
         id: audit.id.toString(),
       })));
-    }, 'Error fetching completed audits. Please try again.');
-  }, [contract]);
+    }, 'Error retrieving completed audits. Please try again.');
+  }, [auditContract]);
 
   useEffect(() => {
-    fetchCompletedAudits();
-  }, [fetchCompletedAudits]);
+    retrieveCompletedAudits();
+  }, [retrieveCompletedAudits]);
 
-  return { loading, audits, submitAudit, fetchAuditStatus, fetchCompletedAudits, error, connectWallet };
+  return { isLoading, auditRecords, submitAuditRecord, retrieveAuditStatus, retrieveCompletedAudits, error, connectWallet: initializeWalletConnection };
 };
 
 export default useAuditContract;
