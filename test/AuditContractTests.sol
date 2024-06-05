@@ -3,62 +3,32 @@ pragma solidity >=0.7.0 <0.9.0;
 
 import "hardhat/console.sol";
 
-contract AuditContract {
+import "@openzeppelin/contracts/access/Ownable.sol";
+
+contract AuditContract is Ownable {
     uint256 public submissionFee;
 
-    constructor(uint256 _submissionFee) {
+    event AuditPerformed(address auditor, string auditReport);
+    event AuditorRewarded(address auditor, uint256 rewardAmount);
+
+    constructor(uint256 _submissionFee) Ownable() {
         submissionFee = _submissionFee;
     }
 
-    function performAudit(address auditor) public {
+    function performAudit(address auditor, string calldata auditReport) public payable {
+        require(msg.value == submissionFee, "Incorrect submission fee");
+        emit AuditPerformed(auditor, auditReport);
     }
 
-    function rewardAuditor(address auditor) public {
-    }
-}
-
-contract AuditContractTest {
-    AuditContract auditContract;
-    address mockAuditor = 0xAb8483F64d9C6d1EcF9b849Ae677dD3315835CB2;
-    address mockContractOwner = 0x4B20993Bc481177ec7E8f571ceCaE8A9e22C01db;
-    uint256 submissionFee = 1 ether;
-
-    function beforeEach() public {
-        auditContract = new AuditContract(submissionFee);
+    function rewardAuditor(address payable auditor, uint256 rewardAmount) public onlyOwner {
+        require(address(this).balance >= rewardAmount, "Insufficient balance to reward auditor");
+        auditor.transfer(rewardAmount);
+        emit AuditorRewarded(auditor, rewardAmount);
     }
 
-    function testContractSubmission() public {
-        (bool success, ) = address(auditContract).call{value: submissionFee}("");
-        require(success, "Submission failed");
+    function deposit() public payable {}
+
+    function checkBalance() public view returns (uint256) {
+        return address(this).balance;
     }
-
-    function testPerformAudit() public payable {
-        (bool success,) = address(auditContract).call{value: submissionFee}("");
-        require(success, "Failed to send Ether for audit submission.");
-        auditContract.performAudit(mockAuditor);
-    }
-
-    function testRewardMechanism() public {
-        testPerformAudit();
-        auditContract.rewardAuditor(mockAuditor);
-    }
-
-    function sendEtherToContract(uint amount) public payable {
-        (bool success,) = address(auditContract).call{value: amount}("");
-        require(success, "Failed to send Ether to contract.");
-    }
-
-    function testOnlyOwnerCanReward() public {
-        sendEtherToContract(submissionFee);
-        auditContract.performAudit(mockAuditor);
-
-        try auditContract.rewardAuditor(mockAuditor) {
-            require(false, "Rewards should only be possible for the owner");
-        } catch {
-        }
-    }
-
-    receive() external payable {}
-  
-    fallback() external payable {}
 }
